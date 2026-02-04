@@ -6,6 +6,12 @@ import sys
 from telethon import TelegramClient
 from datetime import datetime
 from dotenv import load_dotenv
+from zoneinfo import ZoneInfo
+
+def moscow_time(*args):
+    return datetime.now(ZoneInfo("Europe/Moscow")).timetuple()
+
+logging.Formatter.converter = moscow_time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,6 +20,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+
 logger = logging.getLogger(__name__)
 
 
