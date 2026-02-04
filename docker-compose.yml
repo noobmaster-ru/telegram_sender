@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    image: telegram-sender-app
+    # Останавливаем автоматический запуск при старте docker-compose up
+    profiles:
+      - ignore
+    volumes:
+      - .:/app
+
+
+  scheduler:
+    image: mcuadros/ofelia:latest
+    restart: always
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Europe/Moscow 
+    labels:
+      - "ofelia.enabled=true"
+      # Используем job-run: это создаст новый контейнер из образа
+      - "ofelia.job-run.telegram-task.schedule=0 0 7,12,16,19,21 * * *"
+      - "ofelia.job-run.telegram-task.image=telegram-sender-app"
+      # Прокидываем volume, чтобы сессия сохранялась (важно!)
+      - "ofelia.job-run.telegram-task.volume=${PWD}:/app"
