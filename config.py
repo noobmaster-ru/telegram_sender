@@ -3,7 +3,7 @@ TARGETS_FILE = "targets.txt"
 IMAGE_PATH = "photo.jpg"
 FOLDER_NAME = "Раздачи бесп"
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
-SEND_INTERVAL = 5  # секунд между отправками
+SEND_INTERVAL = 10  # секунд между отправками
 
 USERNAME_BUSINESS_ACCOUNT = "@cashbacks_big"
 
