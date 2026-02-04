@@ -2,13 +2,8 @@ services:
   app:
     build: .
     image: telegram-sender-app
-    # Останавливаем автоматический запуск при старте docker-compose up
-    profiles:
-      - ignore
     volumes:
       - .:/app
-
-
   scheduler:
     image: mcuadros/ofelia:latest
     restart: always
