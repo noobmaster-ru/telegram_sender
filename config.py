@@ -5,7 +5,7 @@ FOLDER_NAME = "Раздачи бесп"
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 10  # секунд между отправками
 
-USERNAME_BUSINESS_ACCOUNT = "@cashbacks_big"
+USERNAME_BUSINESS_ACCOUNT = "@eugene_saharov"
 
 CAPTION = f"""
 Ватные диски для ушей
