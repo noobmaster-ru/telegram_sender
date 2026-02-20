@@ -1,4 +1,4 @@
-SESSION_NAME = "sender"
+SESSION_NAME = "sender_session"
 TARGETS_FILE = "targets.txt"
 IMAGE_PATH = "photo.jpg"
 FOLDER_NAME = "Раздачи бесп"
