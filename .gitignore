@@ -13,7 +13,7 @@ logs/
 pgdata/
 .pytest_cache/
 *.session
-
+*.session-journal
 
 DataExport*
 
