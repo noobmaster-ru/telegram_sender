@@ -30,7 +30,11 @@ jobs:
             if docker compose version >/dev/null 2>&1; then
               docker compose up -d --build --remove-orphans
             elif docker-compose version >/dev/null 2>&1; then
-              docker-compose up -d --build --remove-orphans
+              if ! docker-compose up -d --build --remove-orphans; then
+                echo "docker-compose up failed, running legacy recovery (down + up)..."
+                docker-compose down --remove-orphans || true
+                docker-compose up -d --build
+              fi
             else
               echo "Neither 'docker compose' nor 'docker-compose' is available on the server."
               exit 1
