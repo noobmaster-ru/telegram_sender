@@ -21,11 +21,17 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
-          script_stop: true
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
             git fetch --all
             git checkout main
             git pull origin main
-            docker compose up -d --build --remove-orphans
+            if docker compose version >/dev/null 2>&1; then
+              docker compose up -d --build --remove-orphans
+            elif docker-compose version >/dev/null 2>&1; then
+              docker-compose up -d --build --remove-orphans
+            else
+              echo "Neither 'docker compose' nor 'docker-compose' is available on the server."
+              exit 1
+            fi

@@ -15,7 +15,7 @@ services:
     labels:
       - "ofelia.enabled=true"
       # Используем job-run: это создаст новый контейнер из образа
-      - "ofelia.job-run.telegram-task.schedule=0 0 7,12,16,19,21 * * *"
+      - "ofelia.job-run.telegram-task.schedule=0 0 7,12,17,21 * * *"
       - "ofelia.job-run.telegram-task.image=telegram-sender-app"
       # Прокидываем volume, чтобы сессия сохранялась (важно!)
       - "ofelia.job-run.telegram-task.volume=${PWD}:/app"
