@@ -4,9 +4,9 @@ services:
     image: telegram-sender-app
     volumes:
       - .:/app
-    # Собирает образ для планировщика; сам не рассылает при docker compose up.
-    # Реальные рассылки запускает ofelia (job-run) по расписанию ниже.
-    command: ["true"]
+    # На деплое (docker compose up) шлёт уведомление "Бот задеплоен" в канал отчётов и выходит.
+    # Рассылку по каналам НЕ делает — её запускает ofelia (job-run) по расписанию ниже.
+    command: ["uv", "run", "notify_deploy.py"]
     restart: "no"
   scheduler:
     image: mcuadros/ofelia:latest
