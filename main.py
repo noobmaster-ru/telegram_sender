@@ -1,5 +1,6 @@
 import os
 import asyncio
+import random
 import config as config
 import logging
 import sys
@@ -51,11 +52,13 @@ async def main(client: TelegramClient):
     logger.info("→ Запуск send.py")
     await client.start()
 
-    targets = None
     with open(config.TARGETS_FILE, "r") as f:
-        targets = [line.strip() for line in f if line.strip()]
-        
-    logger.info(f"📌 Загружено целей: {len(targets)}")
+        all_targets = [line.strip() for line in f if line.strip()]
+
+    # Берём случайные SEND_COUNT каналов (если в списке меньше — берём все)
+    targets = random.sample(all_targets, min(config.SEND_COUNT, len(all_targets)))
+
+    logger.info(f"📌 Всего каналов: {len(all_targets)}, выбрано случайно: {len(targets)}")
 
     success = []
     failed = []
