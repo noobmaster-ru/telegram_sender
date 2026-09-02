@@ -67,10 +67,10 @@ async def export_chats(client: TelegramClient):
                     identifier = f"-100{raw_id}"
 
             results.append(identifier)
-            logger.info("Добавлено:", identifier)
+            logger.info("Добавлено: %s", identifier)
 
         except Exception as e:
-            logger.info("Ошибка получения entity:", p, e)
+            logger.warning("Ошибка получения entity %s: %s", p, e)
 
     # сохраняем результат
     with open(config.TARGETS_FILE, "w") as f:

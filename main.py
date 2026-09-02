@@ -4,6 +4,7 @@ import config as config
 import logging
 import sys
 from telethon import TelegramClient
+from telethon.errors import FloodWaitError
 from datetime import datetime
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 async def send_report(success, failed):
     """Отправка отчёта о рассылке (без успешных чатов)."""
 
-    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+    timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S")
 
     report = (
         f"📊 *Отчёт о рассылке*\n\n"
@@ -63,7 +64,7 @@ async def main(client: TelegramClient):
         logger.info(f"\n→ {i}/{len(targets)} отправка в: {target}")
 
         try:
-            await client.send_file(target, config.IMAGE_PATH, caption=config.CAPTION)
+            await _send_with_flood_retry(target)
             logger.info(f"✔ Успешно → {target}")
             success.append(target)
         except Exception as e:
@@ -77,9 +78,23 @@ async def main(client: TelegramClient):
     try:
         await send_report(success, failed)
         logger.info("✔ Отчёт отправлен!")
-    except Exception as e:
-        logger.info("❌ Ошибка при отправке отчёта:", e)
+    except Exception:
+        logger.exception("❌ Ошибка при отправке отчёта")
     await client.disconnect()
+
+
+async def _send_with_flood_retry(target: str, max_flood_retries: int = 2) -> None:
+    """Отправка с ожиданием при FloodWait: Telegram сам говорит, сколько ждать."""
+    for attempt in range(max_flood_retries + 1):
+        try:
+            await client.send_file(target, config.IMAGE_PATH, caption=config.CAPTION)
+            return
+        except FloodWaitError as e:
+            if attempt == max_flood_retries:
+                raise
+            wait = e.seconds + 5
+            logger.warning(f"⏳ FloodWait для {target}: ждём {wait} секунд (попытка {attempt + 1})")
+            await asyncio.sleep(wait)
 
 
 if __name__ == "__main__":
