@@ -27,26 +27,35 @@ logger = logging.getLogger(__name__)
 
 
 async def send_report(success, failed):
-    """Отправка отчёта о рассылке (без успешных чатов)."""
+    """Отправка красиво оформленного отчёта о рассылке."""
 
-    timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y %H:%M:%S")
+    timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y в %H:%M")
+    total = len(success) + len(failed)
+    rate = round(len(success) / total * 100) if total else 0
+    divider = "━━━━━━━━━━━━━━━"
 
-    report = (
-        f"📊 *Отчёт о рассылке*\n\n"
-        f"🕒 Время: {timestamp}\n"
-        f"📨 Всего чатов: {len(success) + len(failed)}\n"
-        f"✔ Успешно: {len(success)}\n"
-        f"❌ Ошибок: {len(failed)}\n\n"
-    )
+    lines = [
+        "📊 **Отчёт о рассылке**",
+        divider,
+        f"🕒 {timestamp} (МСК)",
+        "",
+        f"📨 Каналов в рассылке: **{total}**",
+        f"✅ Доставлено: **{len(success)}**",
+        f"❌ С ошибкой: **{len(failed)}**",
+        f"📈 Успешность: **{rate}%**",
+    ]
+
+    if success:
+        lines += ["", "✅ **Доставлено в:**"]
+        lines += [f"   • {chat}" for chat in success]
 
     if failed:
-        report += "### ❌ Ошибки:\n"
-        for chat, err in failed:
-            report += f"• {chat} — `{err}`\n"
+        lines += ["", "⚠️ **Не доставлено:**"]
+        lines += [f"   • {chat} — `{err}`" for chat, err in failed]
     else:
-        report += "Ошибок нет 🎉"
+        lines += ["", divider, "🎉 Пост ушёл во все каналы без ошибок!"]
 
-    await client.send_message(config.REPORT_CHAT, report, parse_mode="markdown")
+    await client.send_message(config.REPORT_CHAT, "\n".join(lines), parse_mode="markdown")
 
 async def main(client: TelegramClient):
     logger.info("→ Запуск send.py")
