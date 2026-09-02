@@ -19,8 +19,9 @@ services:
     labels:
       - "ofelia.enabled=true"
       # Используем job-run: это создаст новый контейнер из образа
-      # Раз в 4 дня в 10:00 МСК (числа месяца 1,5,9,...29; на стыке месяцев интервал может быть короче)
-      - "ofelia.job-run.telegram-task.schedule=0 0 10 */4 * *"
+      # Каждые 3 дня в 10:00 МСК (числа месяца 1,4,7,...,28; ближайшее срабатывание — 4 сентября).
+      # На стыке месяцев с 31 днём интервал может отличаться на день.
+      - "ofelia.job-run.telegram-task.schedule=0 0 10 */3 * *"
       - "ofelia.job-run.telegram-task.image=telegram-sender-app"
       # Прокидываем volume, чтобы сессия сохранялась (важно!)
       - "ofelia.job-run.telegram-task.volume=${PWD}:/app"
