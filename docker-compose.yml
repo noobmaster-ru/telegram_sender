@@ -4,6 +4,10 @@ services:
     image: telegram-sender-app
     volumes:
       - .:/app
+    # Собирает образ для планировщика; сам не рассылает при docker compose up.
+    # Реальные рассылки запускает ofelia (job-run) по расписанию ниже.
+    command: ["true"]
+    restart: "no"
   scheduler:
     image: mcuadros/ofelia:latest
     restart: always
