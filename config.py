@@ -3,8 +3,7 @@ TARGETS_FILE = "targets.txt"
 IMAGE_PATH = "photo.jpg"
 FOLDER_NAME = "Раздачи бесп"
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
-SEND_INTERVAL = 10  # секунд между отправками
-SEND_COUNT = 5  # сколько случайных каналов из targets.txt берём за одну рассылку
+SEND_INTERVAL = 11  # секунд между отправками
 
 USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 

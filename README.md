@@ -1,6 +1,6 @@
 # telegram_sender
 
-Рассылает пост (photo.jpg + подпись) по случайным каналам из targets.txt по расписанию (ofelia в docker-compose.yml).
+Рассылает пост (photo.jpg + подпись) во все каналы из targets.txt (интервал SEND_INTERVAL сек, порядок случайный): один раз сразу при деплое, дальше по расписанию (ofelia в docker-compose.yml).
 
 ## Кэшбек из гугл-таблицы
 

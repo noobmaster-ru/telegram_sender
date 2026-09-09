@@ -71,12 +71,12 @@ async def main(client: TelegramClient):
     await client.start()
 
     with open(config.TARGETS_FILE, "r") as f:
-        all_targets = [line.strip() for line in f if line.strip()]
+        targets = [line.strip() for line in f if line.strip()]
 
-    # Берём случайные SEND_COUNT каналов (если в списке меньше — берём все)
-    targets = random.sample(all_targets, min(config.SEND_COUNT, len(all_targets)))
+    # Шлём во все каналы списка, порядок каждый раз случайный
+    random.shuffle(targets)
 
-    logger.info(f"📌 Всего каналов: {len(all_targets)}, выбрано случайно: {len(targets)}")
+    logger.info(f"📌 Каналов в рассылке: {len(targets)}")
 
     success = []
     failed = []
