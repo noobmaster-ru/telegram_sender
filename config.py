@@ -6,15 +6,36 @@ REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 10  # секунд между отправками
 SEND_COUNT = 5  # сколько случайных каналов из targets.txt берём за одну рассылку
 
-USERNAME_BUSINESS_ACCOUNT = "@es_lab_company"
+USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 
-CAPTION = f"""
-Москитная сетка на дверь 100х210
+# --- Кэшбек из гугл-таблицы (та же таблица, что подключена к axiomai) ---
+# ид таблицы — из ссылки: docs.google.com/spreadsheets/d/<ВОТ_ЭТА_ЧАСТЬ>/edit
+CASHBACK_TABLE_ID = "1ykYRCtKiRxM3R7WH1h1VX6uU0HgxvAfw2e-fPY-daCU"
+SERVICE_ACCOUNT_FILE = "sunny-might-477012-c4-bd1e93318fec.json"  # ключ сервисного аккаунта, лежит рядом (в git не попадает)
+CASHBACK_NM_IDS = [1223382960, 1192464564]  # артикулы раздачи (дуб, яблоня): процент берём по первому найденному
+WB_PRICE = 1600  # цена на ВБ, руб — для расчёта сумм в посте
+FALLBACK_CASHBACK_PERCENT = 20  # если таблица недоступна или артикул не найден
 
-Цена на ВБ: 293 руб
-Цена для Вас: 0 руб
+CAPTION_TEMPLATE = """
+🔥 Щепа для копчения — КЭШБЕК {percent}%
 
-КЭШБЕК 100%
+Набор 4 пакета по 1,5 л — дуб (насыщенный классический дым) или яблоня (мягкий фруктовый аромат). Для коптильни, гриля и мангала: мясо, рыба, птица, сыр.
 
-Сотрудничество: {USERNAME_BUSINESS_ACCOUNT}
+✅ Чистая древесина, без химии
+💰 Цена на ВБ: {price} руб
+💸 Вернём {cashback_rub} руб — итог для Вас: {final_price} руб
+🎁 Количество мест ограничено
+
+Как получить кэшбек → пишите {username}
 """.strip()
+
+
+def build_caption(percent: int) -> str:
+    cashback_rub = round(WB_PRICE * percent / 100)
+    return CAPTION_TEMPLATE.format(
+        percent=percent,
+        price=WB_PRICE,
+        cashback_rub=cashback_rub,
+        final_price=WB_PRICE - cashback_rub,
+        username=USERNAME_BUSINESS_ACCOUNT,
+    )

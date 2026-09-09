@@ -1,6 +1,7 @@
 import os
 import asyncio
 import random
+import cashback
 import config as config
 import logging
 import sys
@@ -26,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def send_report(success, failed):
+async def send_report(success, failed, percent, percent_source):
     """Отправка красиво оформленного отчёта о рассылке."""
 
     timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y в %H:%M")
@@ -43,6 +44,7 @@ async def send_report(success, failed):
         f"✅ Доставлено: **{len(success)}**",
         f"❌ С ошибкой: **{len(failed)}**",
         f"📈 Успешность: **{rate}%**",
+        f"💸 Кэшбек в посте: **{percent}%** ({percent_source})",
     ]
 
     if success:
@@ -59,6 +61,13 @@ async def send_report(success, failed):
 
 async def main(client: TelegramClient):
     logger.info("→ Запуск send.py")
+
+    # Процент кэшбека тянем из гугл-таблицы перед каждой рассылкой,
+    # чтобы изменения продавца в таблице сразу попадали в пост.
+    percent, percent_source = cashback.fetch_cashback_percent()
+    caption = config.build_caption(percent)
+    logger.info(f"💸 Кэшбек в посте: {percent}% ({percent_source})")
+
     await client.start()
 
     with open(config.TARGETS_FILE, "r") as f:
@@ -76,7 +85,7 @@ async def main(client: TelegramClient):
         logger.info(f"\n→ {i}/{len(targets)} отправка в: {target}")
 
         try:
-            await _send_with_flood_retry(target)
+            await _send_with_flood_retry(target, caption)
             logger.info(f"✔ Успешно → {target}")
             success.append(target)
         except Exception as e:
@@ -88,18 +97,18 @@ async def main(client: TelegramClient):
 
     logger.info("\n📤 Отправка отчёта...")
     try:
-        await send_report(success, failed)
+        await send_report(success, failed, percent, percent_source)
         logger.info("✔ Отчёт отправлен!")
     except Exception:
         logger.exception("❌ Ошибка при отправке отчёта")
     await client.disconnect()
 
 
-async def _send_with_flood_retry(target: str, max_flood_retries: int = 2) -> None:
+async def _send_with_flood_retry(target: str, caption: str, max_flood_retries: int = 2) -> None:
     """Отправка с ожиданием при FloodWait: Telegram сам говорит, сколько ждать."""
     for attempt in range(max_flood_retries + 1):
         try:
-            await client.send_file(target, config.IMAGE_PATH, caption=config.CAPTION)
+            await client.send_file(target, config.IMAGE_PATH, caption=caption)
             return
         except FloodWaitError as e:
             if attempt == max_flood_retries:
