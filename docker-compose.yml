@@ -24,3 +24,8 @@ services:
       - "ofelia.job-run.telegram-task.image=telegram-sender-app"
       # Прокидываем volume, чтобы сессия сохранялась (важно!)
       - "ofelia.job-run.telegram-task.volume=${PWD}:/app"
+      # Каждый день в 23:30 МСК обновляем targets.txt из папки Telegram
+      - "ofelia.job-run.update-targets.schedule=0 30 23 * * *"
+      - "ofelia.job-run.update-targets.image=telegram-sender-app"
+      - "ofelia.job-run.update-targets.command=uv run python export_folder_chats.py"
+      - "ofelia.job-run.update-targets.volume=${PWD}:/app"

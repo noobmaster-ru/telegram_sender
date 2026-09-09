@@ -3,6 +3,7 @@ import asyncio
 import random
 import cashback
 import config as config
+import export_folder_chats
 import logging
 import sys
 from telethon import TelegramClient
@@ -69,6 +70,11 @@ async def main(client: TelegramClient):
     logger.info(f"💸 Кэшбек в посте: {percent}% ({percent_source})")
 
     await client.start()
+
+    # Списка нет (свежий клон после деплоя) — сразу выгружаем его из папки Telegram
+    if not os.path.exists(config.TARGETS_FILE):
+        logger.warning("⚠️ targets.txt отсутствует — обновляю список из папки Telegram")
+        await export_folder_chats.export_chats(client)
 
     with open(config.TARGETS_FILE, "r") as f:
         targets = [line.strip() for line in f if line.strip()]
