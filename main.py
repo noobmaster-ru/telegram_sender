@@ -28,8 +28,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def send_report(success, failed, percent, price, percent_source):
-    """Отправка красиво оформленного отчёта о рассылке."""
+async def send_report(success, failed, percent, price, percent_source, caption):
+    """Отправка красиво оформленного отчёта о рассылке вместе с самим постом."""
 
     timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y в %H:%M")
     total = len(success) + len(failed)
@@ -57,6 +57,10 @@ async def send_report(success, failed, percent, price, percent_source):
         lines += [f"   • {chat} — `{err}`" for chat, err in failed]
     else:
         lines += ["", divider, "🎉 Пост ушёл во все каналы без ошибок!"]
+
+    # Сам пост 1-в-1: та же команда, что и для каналов (то же фото, тот же caption)
+    await client.send_message(config.REPORT_CHAT, "👀 **Пост в этой рассылке:**", parse_mode="markdown")
+    await client.send_file(config.REPORT_CHAT, config.IMAGE_PATH, caption=caption)
 
     await client.send_message(config.REPORT_CHAT, "\n".join(lines), parse_mode="markdown")
 
@@ -103,7 +107,7 @@ async def main(client: TelegramClient):
 
     logger.info("\n📤 Отправка отчёта...")
     try:
-        await send_report(success, failed, percent, price, percent_source)
+        await send_report(success, failed, percent, price, percent_source, caption)
         logger.info("✔ Отчёт отправлен!")
     except Exception:
         logger.exception("❌ Ошибка при отправке отчёта")
