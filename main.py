@@ -28,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def send_report(success, failed, percent, percent_source):
+async def send_report(success, failed, percent, price, percent_source):
     """Отправка красиво оформленного отчёта о рассылке."""
 
     timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y в %H:%M")
@@ -45,7 +45,7 @@ async def send_report(success, failed, percent, percent_source):
         f"✅ Доставлено: **{len(success)}**",
         f"❌ С ошибкой: **{len(failed)}**",
         f"📈 Успешность: **{rate}%**",
-        f"💸 Кэшбек в посте: **{percent}%** ({percent_source})",
+        f"💸 Кэшбек в посте: **{percent}%**, цена **{price} руб** ({percent_source})",
     ]
 
     if success:
@@ -63,11 +63,11 @@ async def send_report(success, failed, percent, percent_source):
 async def main(client: TelegramClient):
     logger.info("→ Запуск send.py")
 
-    # Процент кэшбека тянем из гугл-таблицы перед каждой рассылкой,
+    # Процент кэшбека и цену тянем из гугл-таблицы перед каждой рассылкой,
     # чтобы изменения продавца в таблице сразу попадали в пост.
-    percent, percent_source = cashback.fetch_cashback_percent()
-    caption = config.build_caption(percent)
-    logger.info(f"💸 Кэшбек в посте: {percent}% ({percent_source})")
+    percent, price, percent_source = cashback.fetch_cashback_data()
+    caption = config.build_caption(percent, price)
+    logger.info(f"💸 Кэшбек в посте: {percent}%, цена {price} руб ({percent_source})")
 
     await client.start()
 
@@ -103,7 +103,7 @@ async def main(client: TelegramClient):
 
     logger.info("\n📤 Отправка отчёта...")
     try:
-        await send_report(success, failed, percent, percent_source)
+        await send_report(success, failed, percent, price, percent_source)
         logger.info("✔ Отчёт отправлен!")
     except Exception:
         logger.exception("❌ Ошибка при отправке отчёта")

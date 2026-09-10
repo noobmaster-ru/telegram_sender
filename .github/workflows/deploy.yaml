@@ -1,0 +1,40 @@
+name: Deploy sender
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy sender files to server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.SENDER_HOST }}
+          username: ${{ secrets.SENDER_USER }}
+          key: ${{ secrets.SENDER_SSH_KEY }}
+          source: "*.py,Dockerfile,docker-compose.yml,pyproject.toml,uv.lock,README.md,photo.jpg,photos"
+          target: "~/telegram_sender"
+
+      - name: Rebuild image and restart scheduler
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SENDER_HOST }}
+          username: ${{ secrets.SENDER_USER }}
+          key: ${{ secrets.SENDER_SSH_KEY }}
+          command_timeout: 15m
+          # Сервис app намеренно не поднимаем: его запуск = немедленная рассылка.
+          # Код монтируется volume-ом, так что плановые запуски ofelia подхватят
+          # новые файлы сразу; пересборка образа нужна только ради зависимостей.
+          script: |
+            set -e
+            cd ~/telegram_sender
+            docker compose build app
+            docker compose up -d scheduler
+            docker image prune -f

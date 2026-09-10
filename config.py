@@ -12,7 +12,7 @@ USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 CASHBACK_TABLE_ID = "1ykYRCtKiRxM3R7WH1h1VX6uU0HgxvAfw2e-fPY-daCU"
 SERVICE_ACCOUNT_FILE = "sunny-might-477012-c4-bd1e93318fec.json"  # ключ сервисного аккаунта, лежит рядом (в git не попадает)
 CASHBACK_NM_IDS = [1223382960, 1192464564]  # артикулы раздачи (дуб, яблоня): процент берём по первому найденному
-WB_PRICE = 1600  # цена на ВБ, руб — для расчёта сумм в посте
+WB_PRICE = 1600  # резервная цена на ВБ, руб — если в таблице (колонка K) цены нет
 FALLBACK_CASHBACK_PERCENT = 20  # если таблица недоступна или артикул не найден
 
 CAPTION_TEMPLATE = """
@@ -29,12 +29,12 @@ CAPTION_TEMPLATE = """
 """.strip()
 
 
-def build_caption(percent: int) -> str:
-    cashback_rub = round(WB_PRICE * percent / 100)
+def build_caption(percent: int, price: int) -> str:
+    cashback_rub = round(price * percent / 100)
     return CAPTION_TEMPLATE.format(
         percent=percent,
-        price=WB_PRICE,
+        price=price,
         cashback_rub=cashback_rub,
-        final_price=WB_PRICE - cashback_rub,
+        final_price=price - cashback_rub,
         username=USERNAME_BUSINESS_ACCOUNT,
     )

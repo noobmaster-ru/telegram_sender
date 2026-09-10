@@ -1,7 +1,7 @@
-"""Получение процента кэшбека из гугл-таблицы продавца.
+"""Получение процента кэшбека и цены из гугл-таблицы продавца.
 
-Таблица та же, что подключена к axiomai: первый лист, диапазон C2:J,
-где C — процент кэшбека, F — артикул (nm_id).
+Таблица та же, что подключена к axiomai: первый лист, диапазон C2:K,
+где C — процент кэшбека, F — артикул (nm_id), K — цена на ВБ в рублях.
 """
 
 import logging
@@ -13,35 +13,52 @@ import config
 logger = logging.getLogger(__name__)
 
 
-def fetch_cashback_percent() -> tuple[int, str]:
-    """Возвращает (процент, источник).
+def fetch_cashback_data() -> tuple[int, int, str]:
+    """Возвращает (процент, цена в рублях, источник).
 
-    Процент — из таблицы по первому найденному артикулу из config.CASHBACK_NM_IDS.
+    Данные — из таблицы по первому найденному артикулу из config.CASHBACK_NM_IDS.
     При любой ошибке (таблица недоступна, артикул не найден, процент пуст)
-    возвращает резервный config.FALLBACK_CASHBACK_PERCENT.
+    возвращает резервные config.FALLBACK_CASHBACK_PERCENT и config.WB_PRICE.
+    Если найден процент, но не цена, — процент из таблицы, цена резервная.
     """
     try:
         gc = gspread.service_account(filename=config.SERVICE_ACCOUNT_FILE)
-        rows = gc.open_by_key(config.CASHBACK_TABLE_ID).sheet1.get("C2:J")
+        rows = gc.open_by_key(config.CASHBACK_TABLE_ID).sheet1.get("C2:K")
 
         percent_by_nm: dict[int, int] = {}
+        price_by_nm: dict[int, int] = {}
         for row in rows:
             if len(row) >= 4 and row[3]:
                 try:
-                    percent_by_nm[int(row[3])] = int(row[0]) if row[0] else 0
+                    nm_id = int(row[3])
+                    percent_by_nm[nm_id] = int(row[0]) if row[0] else 0
                 except ValueError:
                     continue
+                try:
+                    if len(row) >= 9 and row[8]:
+                        price_by_nm[nm_id] = round(float(row[8].replace(",", ".").replace("\xa0", "").replace(" ", "")))
+                except ValueError:
+                    pass
 
         for nm_id in config.CASHBACK_NM_IDS:
             percent = percent_by_nm.get(nm_id)
             if percent:  # 0 или пусто в таблице считаем «не задан»
-                return percent, "из таблицы"
+                price = price_by_nm.get(nm_id)
+                if price:
+                    return percent, price, "из таблицы"
+                logger.warning("⚠️ Цена для артикула %d не заполнена в таблице, беру резервную %d руб", nm_id, config.WB_PRICE)
+                return percent, config.WB_PRICE, "процент из таблицы, цена резервная"
 
         raise LookupError(f"артикулы {config.CASHBACK_NM_IDS} не найдены в таблице или процент не заполнен")
     except Exception as e:
         logger.warning(
-            "⚠️ Не удалось получить кэшбек из таблицы (%s), используем резервный %d%%",
+            "⚠️ Не удалось получить кэшбек из таблицы (%s), используем резервные %d%% и %d руб",
             e,
             config.FALLBACK_CASHBACK_PERCENT,
+            config.WB_PRICE,
         )
-        return config.FALLBACK_CASHBACK_PERCENT, f"резервный из config.py, таблица недоступна: {e.__class__.__name__}"
+        return (
+            config.FALLBACK_CASHBACK_PERCENT,
+            config.WB_PRICE,
+            f"резервные из config.py, таблица недоступна: {e.__class__.__name__}",
+        )
