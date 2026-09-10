@@ -5,6 +5,7 @@
 """
 
 import logging
+import re
 
 import gspread
 
@@ -34,11 +35,13 @@ def fetch_cashback_data() -> tuple[int, int, str]:
                     percent_by_nm[nm_id] = int(row[0]) if row[0] else 0
                 except ValueError:
                     continue
-                try:
-                    if len(row) >= 9 and row[8]:
-                        price_by_nm[nm_id] = round(float(row[8].replace(",", ".").replace("\xa0", "").replace(" ", "")))
-                except ValueError:
-                    pass
+                if len(row) >= 9 and row[8]:
+                    # терпим «1249₽», «1 249,50 ₽» и просто числа
+                    cleaned = re.sub(r"[^\d,.]", "", row[8]).replace(",", ".")
+                    try:
+                        price_by_nm[nm_id] = round(float(cleaned))
+                    except ValueError:
+                        pass
 
         for nm_id in config.CASHBACK_NM_IDS:
             percent = percent_by_nm.get(nm_id)
