@@ -10,6 +10,7 @@ IMAGE_PATH = "photo.jpg"
 FOLDER_NAME = "Раздачи бесп"
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 11  # секунд между отправками
+VERIFY_DELAY_MINUTES = 7  # через сколько минут после рассылки проверять, что посты не удалили админы
 
 USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 
