@@ -81,7 +81,7 @@ async def main(client: TelegramClient):
         await export_folder_chats.export_chats(client)
 
     with open(config.TARGETS_FILE, "r") as f:
-        targets = [line.strip() for line in f if line.strip()]
+        targets = [line.strip() for line in f if line.strip() and line.strip() not in config.EXCLUDED_TARGETS]
 
     # Шлём во все каналы списка, порядок каждый раз случайный
     random.shuffle(targets)

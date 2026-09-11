@@ -66,6 +66,10 @@ async def export_chats(client: TelegramClient):
                 else:
                     identifier = f"-100{raw_id}"
 
+            if identifier in config.EXCLUDED_TARGETS:
+                logger.info("Пропущено (в чёрном списке): %s", identifier)
+                continue
+
             results.append(identifier)
             logger.info("Добавлено: %s", identifier)
 

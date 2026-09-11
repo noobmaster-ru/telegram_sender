@@ -1,5 +1,11 @@
 SESSION_NAME = "sender_session"
 TARGETS_FILE = "targets.txt"
+
+# Каналы, исключённые из рассылки — фильтруются и при экспорте из папки Telegram,
+# и при чтении targets.txt (на случай устаревшего файла)
+EXCLUDED_TARGETS = {
+    "-1002974591139",
+}
 IMAGE_PATH = "photo.jpg"
 FOLDER_NAME = "Раздачи бесп"
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
