@@ -12,7 +12,7 @@ USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 CASHBACK_TABLE_ID = "1ykYRCtKiRxM3R7WH1h1VX6uU0HgxvAfw2e-fPY-daCU"
 SERVICE_ACCOUNT_FILE = "sunny-might-477012-c4-bd1e93318fec.json"  # ключ сервисного аккаунта, лежит рядом (в git не попадает)
 CASHBACK_NM_IDS = [1223382960, 1192464564]  # артикулы раздачи (дуб, яблоня): процент берём по первому найденному
-WB_PRICE = 1600  # резервная цена на ВБ, руб — если в таблице (колонка K) цены нет
+WB_PRICE = 1450  # резервная цена на ВБ, руб — если в таблице (колонка K) цены нет
 FALLBACK_CASHBACK_PERCENT = 20  # если таблица недоступна или артикул не найден
 
 CAPTION_TEMPLATE = """
