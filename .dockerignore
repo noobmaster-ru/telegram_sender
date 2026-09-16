@@ -7,6 +7,7 @@ env/
 venv/
 
 test_*
+photos_cache/
 .git/
 .gitignore
 .env.dist

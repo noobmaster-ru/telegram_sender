@@ -4,8 +4,10 @@ import random
 import cashback
 import config as config
 import export_folder_chats
+import photos
 import logging
 import sys
+from dataclasses import dataclass
 from telethon import TelegramClient
 from telethon.errors import FloodWaitError
 from datetime import datetime
@@ -28,12 +30,44 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def send_report(survived, deleted, failed, percent, price, percent_source, caption):
-    """Отправка красиво оформленного отчёта о рассылке вместе с самим постом.
+@dataclass(frozen=True)
+class Post:
+    """Готовый пост одного товара: свежее фото с ВБ и подпись с актуальными суммами."""
 
-    survived — посты живы спустя VERIFY_DELAY_MINUTES после публикации;
-    deleted — отправились, но были удалены админами/ботами канала;
-    failed — не удалось отправить вообще.
+    article: config.Article
+    percent: int
+    price: int
+    source: str  # откуда взяты процент и цена — для отчёта
+    caption: str
+    image_path: str  # что реально отправляем: свежее фото с ВБ, кэш или запасное из репозитория
+    image_source: str  # для отчёта
+
+
+def build_posts() -> list[Post]:
+    """Пост для каждого товара из config.ARTICLES.
+
+    Процент, цену и ссылку на фото тянем из гугл-таблицы перед каждой рассылкой,
+    чтобы изменения продавца в таблице и на карточке ВБ сразу попадали в посты.
+    """
+    data = cashback.fetch_cashback_data()
+    posts = []
+    for article in config.ARTICLES:
+        info = data[article.nm_id]
+        caption = config.build_caption(article, info.percent, info.price)
+        image_path, image_source = photos.resolve_photo(article, info.image_url)
+        posts.append(Post(article, info.percent, info.price, info.source, caption, image_path, image_source))
+        logger.info(
+            f"💸 {article.label}: кэшбек {info.percent}%, цена {info.price} руб ({info.source}); фото {image_source}"
+        )
+    return posts
+
+
+async def send_report(survived, deleted, failed, posts):
+    """Отправка красиво оформленного отчёта о рассылке вместе с самими постами.
+
+    survived — (канал, товар): посты живы спустя VERIFY_DELAY_MINUTES после публикации;
+    deleted — (канал, причина, товар): отправились, но были удалены админами/ботами канала;
+    failed — (канал, ошибка, товар): не удалось отправить вообще.
     """
 
     timestamp = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y в %H:%M")
@@ -51,38 +85,41 @@ async def send_report(survived, deleted, failed, percent, price, percent_source,
         f"🗑 Удалено админами после публикации: **{len(deleted)}**",
         f"❌ Ошибка отправки: **{len(failed)}**",
         f"📈 Успешность: **{rate}%**",
-        f"💸 Кэшбек в посте: **{percent}%**, цена **{price} руб** ({percent_source})",
+    ]
+    lines += [
+        f"💸 {post.article.label}: кэшбек **{post.percent}%**, цена **{post.price} руб** ({post.source}), "
+        f"фото {post.image_source}"
+        for post in posts
     ]
 
     if survived:
         lines += ["", "✅ **Доставлено в:**"]
-        lines += [f"   • {chat}" for chat in survived]
+        lines += [f"   • {chat} — {label}" for chat, label in survived]
 
     if deleted:
         lines += ["", "🗑 **Удалено после публикации:**"]
-        lines += [f"   • {chat} — `{reason}`" for chat, reason in deleted]
+        lines += [f"   • {chat} ({label}) — `{reason}`" for chat, reason, label in deleted]
 
     if failed:
         lines += ["", "⚠️ **Не доставлено:**"]
-        lines += [f"   • {chat} — `{err}`" for chat, err in failed]
+        lines += [f"   • {chat} ({label}) — `{err}`" for chat, err, label in failed]
 
     if not deleted and not failed:
-        lines += ["", divider, "🎉 Пост ушёл во все каналы и нигде не удалён!"]
+        lines += ["", divider, "🎉 Посты ушли во все каналы и нигде не удалены!"]
 
-    # Сам пост 1-в-1: та же команда, что и для каналов (то же фото, тот же caption)
-    await client.send_message(config.REPORT_CHAT, "👀 **Пост в этой рассылке:**", parse_mode="markdown")
-    await client.send_file(config.REPORT_CHAT, config.IMAGE_PATH, caption=caption)
+    # Сами посты 1-в-1: та же команда, что и для каналов (то же фото, тот же caption)
+    for post in posts:
+        await client.send_message(
+            config.REPORT_CHAT, f"👀 **Пост «{post.article.label}» в этой рассылке:**", parse_mode="markdown"
+        )
+        await client.send_file(config.REPORT_CHAT, post.image_path, caption=post.caption)
 
     await client.send_message(config.REPORT_CHAT, "\n".join(lines), parse_mode="markdown")
 
 async def main(client: TelegramClient):
     logger.info("→ Запуск send.py")
 
-    # Процент кэшбека и цену тянем из гугл-таблицы перед каждой рассылкой,
-    # чтобы изменения продавца в таблице сразу попадали в пост.
-    percent, price, percent_source = cashback.fetch_cashback_data()
-    caption = config.build_caption(percent, price)
-    logger.info(f"💸 Кэшбек в посте: {percent}%, цена {price} руб ({percent_source})")
+    posts = build_posts()
 
     await client.start()
 
@@ -97,21 +134,23 @@ async def main(client: TelegramClient):
     # Шлём во все каналы списка, порядок каждый раз случайный
     random.shuffle(targets)
 
-    logger.info(f"📌 Каналов в рассылке: {len(targets)}")
+    logger.info(f"📌 Каналов в рассылке: {len(targets)}, товаров: {len(posts)}")
 
-    sent = []  # (канал, id нашего сообщения) — для проверки на удаление
-    failed = []
+    sent = []  # (канал, id нашего сообщения, товар) — для проверки на удаление
+    failed = []  # (канал, ошибка, товар)
 
     for i, target in enumerate(targets, start=1):
-        logger.info(f"\n→ {i}/{len(targets)} отправка в: {target}")
+        # Товары чередуются по каналам: 1-й, 2-й, снова 1-й и т.д.
+        post = posts[(i - 1) % len(posts)]
+        logger.info(f"\n→ {i}/{len(targets)} отправка в: {target} — {post.article.label}")
 
         try:
-            message = await _send_with_flood_retry(target, caption)
+            message = await _send_with_flood_retry(target, post)
             logger.info(f"✔ Успешно → {target} (message_id={message.id})")
-            sent.append((target, message.id))
+            sent.append((target, message.id, post.article.label))
         except Exception as e:
             logger.error(f"❌ Ошибка для {target}: {e}")
-            failed.append((target, str(e)))
+            failed.append((target, str(e), post.article.label))
 
         logger.info(f"⏳ sleep {config.SEND_INTERVAL} секунд…")
         await asyncio.sleep(config.SEND_INTERVAL)
@@ -123,7 +162,7 @@ async def main(client: TelegramClient):
 
     logger.info("\n📤 Отправка отчёта...")
     try:
-        await send_report(survived, deleted, failed, percent, price, percent_source, caption)
+        await send_report(survived, deleted, failed, posts)
         logger.info("✔ Отчёт отправлен!")
     except Exception:
         logger.exception("❌ Ошибка при отправке отчёта")
@@ -136,35 +175,35 @@ async def _verify_posts(sent):
     Telegram возвращает None вместо сообщения, если оно удалено, — этого
     достаточно, чтобы отличить зачистку админами от нормальной публикации.
     """
-    survived = []
-    deleted = []
+    survived = []  # (канал, товар)
+    deleted = []  # (канал, причина, товар)
 
-    for target, message_id in sent:
+    for target, message_id, label in sent:
         try:
             message = await client.get_messages(target, ids=message_id)
             if message is not None:
-                logger.info(f"✔ Пост жив → {target}")
-                survived.append(target)
+                logger.info(f"✔ Пост жив → {target} ({label})")
+                survived.append((target, label))
             else:
-                logger.warning(f"🗑 Пост удалён → {target}")
-                deleted.append((target, "пост удалён админами/ботом канала"))
+                logger.warning(f"🗑 Пост удалён → {target} ({label})")
+                deleted.append((target, "пост удалён админами/ботом канала", label))
         except Exception as e:
             logger.error(f"❓ Не удалось проверить {target}: {e}")
-            deleted.append((target, f"проверка не удалась: {e}"))
+            deleted.append((target, f"проверка не удалась: {e}", label))
 
         await asyncio.sleep(1)  # не частим к Telegram
 
     return survived, deleted
 
 
-async def _send_with_flood_retry(target: str, caption: str, max_flood_retries: int = 2):
+async def _send_with_flood_retry(target: str, post: Post, max_flood_retries: int = 2):
     """Отправка с ожиданием при FloodWait: Telegram сам говорит, сколько ждать.
 
     Возвращает отправленное сообщение — его id нужен для проверки на удаление.
     """
     for attempt in range(max_flood_retries + 1):
         try:
-            return await client.send_file(target, config.IMAGE_PATH, caption=caption)
+            return await client.send_file(target, post.image_path, caption=post.caption)
         except FloodWaitError as e:
             if attempt == max_flood_retries:
                 raise
