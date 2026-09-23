@@ -20,4 +20,5 @@ DataExport*
 *pgdata_dev/
 .VSCodeCounter*
 targets.txt
+targets_daily.txt
 photos_cache/

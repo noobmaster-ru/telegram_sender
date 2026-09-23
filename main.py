@@ -62,7 +62,7 @@ def build_posts() -> list[Post]:
     return posts
 
 
-async def send_report(survived, deleted, failed, posts):
+async def send_report(survived, deleted, failed, posts, title="📊 **Отчёт о рассылке**"):
     """Отправка красиво оформленного отчёта о рассылке вместе с самими постами.
 
     survived — (канал, товар): посты живы спустя VERIFY_DELAY_MINUTES после публикации;
@@ -76,7 +76,7 @@ async def send_report(survived, deleted, failed, posts):
     divider = "━━━━━━━━━━━━━━━"
 
     lines = [
-        "📊 **Отчёт о рассылке**",
+        title,
         divider,
         f"🕒 {timestamp} (МСК)",
         "",
@@ -116,19 +116,31 @@ async def send_report(survived, deleted, failed, posts):
 
     await client.send_message(config.REPORT_CHAT, "\n".join(lines), parse_mode="markdown")
 
-async def main(client: TelegramClient):
-    logger.info("→ Запуск send.py")
+async def main(client: TelegramClient, daily: bool = False):
+    """daily=True — рассылка раз в день по папке FOLDER_NAME_DAILY (чаты с лимитом «1 пост в день»)."""
+    if daily:
+        folder_name, targets_file = config.FOLDER_NAME_DAILY, config.TARGETS_FILE_DAILY
+        title = "📊 **Отчёт о рассылке (1 раз в день)**"
+    else:
+        folder_name, targets_file = config.FOLDER_NAME, config.TARGETS_FILE
+        title = "📊 **Отчёт о рассылке**"
+    logger.info(f"→ Запуск send.py, папка «{folder_name}»")
 
     posts = build_posts()
 
     await client.start()
 
     # Списка нет (свежий клон после деплоя) — сразу выгружаем его из папки Telegram
-    if not os.path.exists(config.TARGETS_FILE):
-        logger.warning("⚠️ targets.txt отсутствует — обновляю список из папки Telegram")
-        await export_folder_chats.export_chats(client)
+    if not os.path.exists(targets_file):
+        logger.warning(f"⚠️ {targets_file} отсутствует — обновляю список из папки «{folder_name}»")
+        await export_folder_chats.export_chats(client, folder_name, targets_file)
+    if not os.path.exists(targets_file):
+        logger.warning(f"⚠️ Папки «{folder_name}» нет — рассылать некуда")
+        await client.send_message(config.REPORT_CHAT, f"⚠️ Рассылка не запущена: в Telegram нет папки «{folder_name}»")
+        await client.disconnect()
+        return
 
-    with open(config.TARGETS_FILE, "r") as f:
+    with open(targets_file, "r") as f:
         targets = [line.strip() for line in f if line.strip() and line.strip() not in config.EXCLUDED_TARGETS]
 
     # Шлём во все каналы списка, порядок каждый раз случайный
@@ -162,7 +174,7 @@ async def main(client: TelegramClient):
 
     logger.info("\n📤 Отправка отчёта...")
     try:
-        await send_report(survived, deleted, failed, posts)
+        await send_report(survived, deleted, failed, posts, title)
         logger.info("✔ Отчёт отправлен!")
     except Exception:
         logger.exception("❌ Ошибка при отправке отчёта")
@@ -218,4 +230,4 @@ if __name__ == "__main__":
     API_HASH = os.getenv("API_HASH")
     
     client = TelegramClient(config.SESSION_NAME, API_ID, API_HASH)
-    asyncio.run(main(client=client))
+    asyncio.run(main(client=client, daily="--daily" in sys.argv[1:]))

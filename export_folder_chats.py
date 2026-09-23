@@ -19,8 +19,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def export_chats(client: TelegramClient):
-    logger.info("\n=== ЭКСПОРТ ЧАТОВ ИЗ ПАПКИ ===")
+async def export_chats(
+    client: TelegramClient,
+    folder_name: str = config.FOLDER_NAME,
+    targets_file: str = config.TARGETS_FILE,
+) -> list[str] | None:
+    """Выгружает чаты папки в targets_file. None — папки нет (файл не трогаем)."""
+    logger.info(f"\n=== ЭКСПОРТ ЧАТОВ ИЗ ПАПКИ «{folder_name}» ===")
 
     await client.start()
 
@@ -37,18 +42,19 @@ async def export_chats(client: TelegramClient):
 
         logger.info(f"type={type(f)}, title={folder_title}")
 
-        if folder_title == config.FOLDER_NAME:
+        if folder_title == folder_name:
             folder = f
 
     logger.info("================================\n")
 
     if folder is None:
-        logger.info(f"❌ Папка '{config.FOLDER_NAME}' не найдена!")
-        return []
+        logger.info(f"❌ Папка '{folder_name}' не найдена!")
+        return None
 
     logger.info(f"✅ Папка найдена → id={folder.id}")
 
-    peers = getattr(folder, "include_peers", [])
+    # закреплённые внутри папки чаты Telegram хранит отдельно от include_peers
+    peers = list(getattr(folder, "pinned_peers", None) or []) + list(getattr(folder, "include_peers", None) or [])
     logger.info(f"Найдено объектов: {len(peers)}")
 
     results = []
@@ -77,12 +83,21 @@ async def export_chats(client: TelegramClient):
             logger.warning("Ошибка получения entity %s: %s", p, e)
 
     # сохраняем результат
-    with open(config.TARGETS_FILE, "w") as f:
+    with open(targets_file, "w") as f:
         for line in results:
             f.write(line + "\n")
-    logger.info(f"\n📁 Список успешно сохранён в {config.TARGETS_FILE}")
-   
+    logger.info(f"\n📁 Список успешно сохранён в {targets_file}")
+    return results
 
+
+async def export_all(client: TelegramClient):
+    """Ночное обновление: основная папка → targets.txt, папка «1 раз в день» → targets_daily.txt."""
+    await export_chats(client)
+    # Папку «1 раз» удалили — дневная рассылка должна остановиться, а не слать по старому списку
+    daily = await export_chats(client, config.FOLDER_NAME_DAILY, config.TARGETS_FILE_DAILY)
+    if daily is None and os.path.exists(config.TARGETS_FILE_DAILY):
+        os.remove(config.TARGETS_FILE_DAILY)
+        logger.info(f"🗑 {config.TARGETS_FILE_DAILY} удалён: папки «{config.FOLDER_NAME_DAILY}» больше нет")
 
 
 if __name__ == "__main__":
@@ -91,4 +106,4 @@ if __name__ == "__main__":
     API_HASH = os.getenv("API_HASH")
     
     client = TelegramClient(config.SESSION_NAME, API_ID, API_HASH)
-    asyncio.run(export_chats(client=client))
+    asyncio.run(export_all(client=client))

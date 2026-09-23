@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 SESSION_NAME = "sender_session"
 TARGETS_FILE = "targets.txt"
+TARGETS_FILE_DAILY = "targets_daily.txt"
 
 # Каналы, исключённые из рассылки — фильтруются и при экспорте из папки Telegram,
 # и при чтении targets.txt (на случай устаревшего файла)
@@ -9,6 +10,9 @@ EXCLUDED_TARGETS = {
     "-1002974591139",
 }
 FOLDER_NAME = "Раздачи бесп"
+# Чаты, где правила разрешают только 1 пост в день (или запрещают постить ночью):
+# по ним отдельная рассылка раз в день (main.py --daily, job telegram-task-daily)
+FOLDER_NAME_DAILY = "Раздачи 1раз"  # не длиннее 12 символов — лимит Telegram на имя папки
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 11  # секунд между отправками
 VERIFY_DELAY_MINUTES = 7  # через сколько минут после рассылки проверять, что посты не удалили админы

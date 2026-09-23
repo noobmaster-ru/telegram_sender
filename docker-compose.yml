@@ -24,7 +24,13 @@ services:
       - "ofelia.job-run.telegram-task.image=telegram-sender-app"
       # Прокидываем volume, чтобы сессия сохранялась (важно!)
       - "ofelia.job-run.telegram-task.volume=${PWD}:/app"
-      # Каждый день в 23:30 МСК обновляем targets.txt из папки Telegram
+      # Каждый день в 14:00 МСК — один пост в чаты папки «Раздачи 1раз» (правила: 1 пост в день, не ночью).
+      # 14:00 — между рассылками 12:00 и 16:00, чтобы две рассылки не работали с одной сессией одновременно.
+      - "ofelia.job-run.telegram-task-daily.schedule=0 0 14 * * *"
+      - "ofelia.job-run.telegram-task-daily.image=telegram-sender-app"
+      - "ofelia.job-run.telegram-task-daily.command=uv run python main.py --daily"
+      - "ofelia.job-run.telegram-task-daily.volume=${PWD}:/app"
+      # Каждый день в 23:30 МСК обновляем targets.txt и targets_daily.txt из папок Telegram
       - "ofelia.job-run.update-targets.schedule=0 30 23 * * *"
       - "ofelia.job-run.update-targets.image=telegram-sender-app"
       - "ofelia.job-run.update-targets.command=uv run python export_folder_chats.py"
