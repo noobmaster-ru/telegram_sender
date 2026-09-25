@@ -43,23 +43,33 @@ class Post:
     image_source: str  # для отчёта
 
 
-def build_posts() -> list[Post]:
-    """Пост для каждого товара из config.ARTICLES.
+def broadcast_slot() -> int:
+    """Номер рассылки за день по config.BROADCAST_HOURS: 7:00 → 0, 12:00 → 1, … (до первой — 0)."""
+    hour = datetime.now(ZoneInfo("Europe/Moscow")).hour
+    passed = [i for i, h in enumerate(config.BROADCAST_HOURS) if h <= hour]
+    return passed[-1] if passed else 0
+
+
+def build_post() -> Post:
+    """Пост товара этой рассылки: N-я рассылка дня — N-й товар по порядку строк таблицы.
 
     Процент, цену и ссылку на фото тянем из гугл-таблицы перед каждой рассылкой,
     чтобы изменения продавца в таблице и на карточке ВБ сразу попадали в посты.
+    Товаров меньше, чем рассылок, — идём по кругу; больше — лишние не попадают ни в одну рассылку.
     """
     data = cashback.fetch_cashback_data()
-    posts = []
-    for article in config.ARTICLES:
-        info = data[article.nm_id]
-        caption = config.build_caption(article, info.percent, info.price)
-        image_path, image_source = photos.resolve_photo(article, info.image_url)
-        posts.append(Post(article, info.percent, info.price, info.source, caption, image_path, image_source))
-        logger.info(
-            f"💸 {article.label}: кэшбек {info.percent}%, цена {info.price} руб ({info.source}); фото {image_source}"
-        )
-    return posts
+    articles = {article.nm_id: article for article in config.ARTICLES}
+    order = [nm_id for nm_id in data if nm_id in articles]
+    slot = broadcast_slot()
+    article = articles[order[slot % len(order)]]
+    info = data[article.nm_id]
+    caption = config.build_caption(article, info.percent, info.price)
+    image_path, image_source = photos.resolve_photo(article, info.image_url)
+    logger.info(
+        f"💸 Рассылка №{slot + 1}: {article.label} — кэшбек {info.percent}%, цена {info.price} руб ({info.source}); "
+        f"фото {image_source}"
+    )
+    return Post(article, info.percent, info.price, info.source, caption, image_path, image_source)
 
 
 async def send_report(survived, deleted, failed, posts, title="📊 **Отчёт о рассылке**"):
@@ -126,7 +136,8 @@ async def main(client: TelegramClient, daily: bool = False):
         title = "📊 **Отчёт о рассылке**"
     logger.info(f"→ Запуск send.py, папка «{folder_name}»")
 
-    posts = build_posts()
+    post = build_post()
+    posts = [post]  # для отчёта
 
     await client.start()
 
@@ -146,14 +157,12 @@ async def main(client: TelegramClient, daily: bool = False):
     # Шлём во все каналы списка, порядок каждый раз случайный
     random.shuffle(targets)
 
-    logger.info(f"📌 Каналов в рассылке: {len(targets)}, товаров: {len(posts)}")
+    logger.info(f"📌 Каналов в рассылке: {len(targets)}, товар: {post.article.label}")
 
     sent = []  # (канал, id нашего сообщения, товар) — для проверки на удаление
     failed = []  # (канал, ошибка, товар)
 
     for i, target in enumerate(targets, start=1):
-        # Товары чередуются по каналам: 1-й, 2-й, снова 1-й и т.д.
-        post = posts[(i - 1) % len(posts)]
         logger.info(f"\n→ {i}/{len(targets)} отправка в: {target} — {post.article.label}")
 
         try:

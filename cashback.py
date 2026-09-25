@@ -26,6 +26,9 @@ class CashbackData:
 def fetch_cashback_data() -> dict[int, CashbackData]:
     """Процент и цена для каждого товара из config.ARTICLES, ключ — nm_id.
 
+    Порядок ключей — порядок строк в таблице (товары, которых там нет, — в конце, в порядке config.ARTICLES);
+    таблица недоступна — порядок config.ARTICLES.
+
     Таблица недоступна — у всех товаров резервные config.FALLBACK_CASHBACK_PERCENT и article.fallback_price.
     Артикул не найден или процент пуст — резерв только у него, остальные из таблицы.
     Найден процент, но не цена — процент из таблицы, цена резервная.
@@ -78,7 +81,8 @@ def fetch_cashback_data() -> dict[int, CashbackData]:
                 percent, article.fallback_price, "процент из таблицы, цена резервная", image_url
             )
 
-    return result
+    row_of = {nm_id: i for i, nm_id in enumerate(percent_by_nm)}
+    return dict(sorted(result.items(), key=lambda item: row_of.get(item[0], len(row_of))))
 
 
 def _read_sheet() -> tuple[dict[int, int], dict[int, int], dict[int, str]]:

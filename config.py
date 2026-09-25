@@ -8,11 +8,18 @@ TARGETS_FILE_DAILY = "targets_daily.txt"
 # и при чтении targets.txt (на случай устаревшего файла)
 EXCLUDED_TARGETS = {
     "-1002974591139",
+    # 25.09: аккаунт забанен/ограничен или посты там удаляют почти всегда — только копят жалобы на спам
+    "@WBrublic", "@ChatWBrubli", "@wb_oz_cashback", "@cash777i", "@discounts_cashback5",
+    "@keshbek_za_otzyv_lovi", "@piarfreechat911", "@B8gjXCYWWf8xMjYy", "@tovarzaotzivvv", "@capibarakesh",
+    "@halyava_wbzon", "@tovarsozona", "@cashback77777", "@za_otzivi", "@wbozoncash1", "@cashback_0",
 }
 FOLDER_NAME = "Раздачи бесп"
 # Чаты, где правила разрешают только 1 пост в день (или запрещают постить ночью):
 # по ним отдельная рассылка раз в день (main.py --daily, job telegram-task-daily)
 FOLDER_NAME_DAILY = "Раздачи 1раз"  # не длиннее 12 символов — лимит Telegram на имя папки
+# Часы рассылок (МСК) — те же, что в расписании telegram-task в docker-compose.yml.
+# Рассылка №N шлёт во все каналы N-й товар по порядку строк таблицы (7:00 — первый, 12:00 — второй, …).
+BROADCAST_HOURS = (7, 12, 16, 19, 21)
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 11  # секунд между отправками
 VERIFY_DELAY_MINUTES = 7  # через сколько минут после рассылки проверять, что посты не удалили админы
