@@ -1,0 +1,8 @@
+# /etc/cron.d/telegram-sender — для сервера с системным часовым поясом UTC.
+# 07:00, 12:00, 16:00, 19:00, 21:00 МСК = 04:00, 09:00, 13:00, 16:00, 18:00 UTC.
+# Размещение на 201.51.26.53 поручено владельцем 05.10.2026; PLAN §19 п. 67.
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=""
+0 4,9,13,16,18 * * * root /opt/telegram-sender/deploy/run-scheduled.sh broadcast
+30 20 * * * root /opt/telegram-sender/deploy/run-scheduled.sh targets

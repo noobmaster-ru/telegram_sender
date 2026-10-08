@@ -1,0 +1,11 @@
+/var/log/telegram-sender/*.log {
+    daily
+    maxsize 10M
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su root root
+}

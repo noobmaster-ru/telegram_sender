@@ -19,7 +19,7 @@ services:
     labels:
       - "ofelia.enabled=true"
       # Используем job-run: это создаст новый контейнер из образа
-      # Каждый день в 7:00, 12:00, 16:00, 19:00 и 21:00 МСК (старт рассылок — 8 сентября).
+      # Пост о Mini App каждый день в 7:00, 12:00, 16:00, 19:00 и 21:00 МСК.
       - "ofelia.job-run.telegram-task.schedule=0 0 7,12,16,19,21 * * *"
       - "ofelia.job-run.telegram-task.image=telegram-sender-app"
       # Прокидываем volume, чтобы сессия сохранялась (важно!)

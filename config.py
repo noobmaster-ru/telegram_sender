@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 SESSION_NAME = "sender_session"
 TARGETS_FILE = "targets.txt"
@@ -18,12 +19,36 @@ FOLDER_NAME = "Раздачи бесп"
 # по ним отдельная рассылка раз в день (main.py --daily, job telegram-task-daily)
 FOLDER_NAME_DAILY = "Раздачи 1раз"  # не длиннее 12 символов — лимит Telegram на имя папки
 # Часы рассылок (МСК) — те же, что в расписании telegram-task в docker-compose.yml.
-# Рассылка №N шлёт во все каналы N-й товар по порядку строк таблицы (7:00 — первый, 12:00 — второй, …).
+# Каждый запуск отправляет один и тот же пост о Mini App.
 BROADCAST_HOURS = (7, 12, 16, 19, 21)
 REPORT_CHAT = "@stats_wb_razdachi"     # чат/канал для отчётов
 SEND_INTERVAL = 11  # секунд между отправками
 VERIFY_DELAY_MINUTES = 7  # через сколько минут после рассылки проверять, что посты не удалили админы
 
+# Пост для аудитории кэшбэк-каналов. Возможности и условия — PLAN §1, §6.5,
+# §19 п. 65–67; короткий пост с обложкой поручен владельцем 06.10.2026.
+MINIAPP_URL = "https://t.me/korzina_market_bot"
+MINIAPP_IMAGE_PATH = Path(__file__).parent / "assets" / "korzina-market-post-cover.png"
+SUBSCRIPTION_PRICE_RUB = 299
+MINIAPP_POST_LABEL = "Корзина.Маркет — Mini App"
+MINIAPP_CAPTION_TEMPLATE = """
+**Пока ждёте раздачу 👀**
+
+«Корзина.Маркет» — маркетплейс с товарами с оптовых рынков: Садовода, ТЯК и Южных Ворот.
+
+Каталог **бесплатно**. [Попробуйте👇]({miniapp_url})
+""".strip()
+
+
+def build_miniapp_caption() -> str:
+    return MINIAPP_CAPTION_TEMPLATE.format(
+        miniapp_url=MINIAPP_URL,
+        subscription_price=SUBSCRIPTION_PRICE_RUB,
+    )
+
+
+# Архив настроек товарной рассылки для cashback.py/photos.py.
+# main.py их больше не использует: таблица, кэшбэк и фото WB не загружаются.
 USERNAME_BUSINESS_ACCOUNT = "@anna_kryzhovnik"
 
 # --- Кэшбек из гугл-таблицы (та же таблица, что подключена к axiomai) ---
