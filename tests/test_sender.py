@@ -38,7 +38,7 @@ class LocalPreviewTests(unittest.TestCase):
             contextlib.redirect_stdout(output),
         ):
             main.cli(["--dry-run"])
-        self.assertIn("Каталог — **299 ₽ в месяц**. [Попробуйте👇]", output.getvalue())
+        self.assertIn("Каталог — **299 ₽ в месяц**. [Попробуйте👈]", output.getvalue())
         self.assertNotIn("бесплат", output.getvalue().lower())
         self.assertIn(str(config.MINIAPP_IMAGE_PATH), output.getvalue())
         self.assertIn("https://t.me/korzina_market_bot", output.getvalue())
@@ -51,7 +51,7 @@ class LocalPreviewTests(unittest.TestCase):
         self.assertEqual(links, ["https://t.me/korzina_market_bot"])
         self.assertEqual(text, "Пока ждёте раздачу 👀\n\n"
             "«Корзина.Маркет» — маркетплейс с товарами с оптовых рынков: Садовода, ТЯК и Южных Ворот.\n\n"
-            "Каталог — 299 ₽ в месяц. Попробуйте👇")
+            "Каталог — 299 ₽ в месяц. Попробуйте👈")
         self.assertLessEqual(len(text.encode("utf-16-le")) // 2, 1024)
 
     def test_empty_or_oversized_post_fails_before_sending(self):
