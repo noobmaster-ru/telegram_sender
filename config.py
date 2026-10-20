@@ -36,7 +36,7 @@ MINIAPP_CAPTION_TEMPLATE = """
 
 «Корзина.Маркет» — маркетплейс с товарами с оптовых рынков: Садовода, ТЯК и Южных Ворот.
 
-Каталог — **{subscription_price} ₽ в месяц**. [Попробуйте👇]({miniapp_url})
+Каталог — **{subscription_price} ₽ в месяц**. [Попробуйте👈]({miniapp_url})
 """.strip()
 
 
